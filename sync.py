@@ -140,7 +140,7 @@ class musicSync():
                     tmpPath = os.path.join(
                         "/tmp/", utils.FAT32Santize(track.title)) + ".ogg"
                     self.losslessToVorbis(track.filePath, tmpPath)
-                    shutil.copy(tmpPath, dirName)
+                    shutil.move(tmpPath, dirName)
                 else:
                     shutil.move(track.filePath, os.path.join(dirName, utils.FAT32Santize(
                         track.title)) + os.path.splitext(track.filePath)[1])
