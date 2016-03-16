@@ -1,0 +1,10 @@
+{
+    "threadNum": 1, 
+    "blacklistAlbum": [
+		"Albums that you don't want to sync goes here"
+    ],
+    "syncSource": [
+        "Directories where you'd like to be searched for music"
+    ],
+    "syncDestination": "Sync destionation, usually your SD card"
+}
