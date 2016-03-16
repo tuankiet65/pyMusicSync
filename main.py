@@ -16,14 +16,14 @@ config = config.Config("./config.json")
 if not os.path.isdir(config.syncDst):
     os.mkdir(config.syncDst)
 
-sync = sync.musicSync(blacklist=config.blacklistAlbum,
-                      recordPath=os.path.join(config.syncDst, "record.json"))
+sync = sync.musicSync(config=config)
 
 for folder in config.syncSrc:
-    sync.folderTraversal(folder)
+    sync.folderTraversal(config.blacklistAlbum, folder)
+
 
 try:
-    sync.albumSync(config.syncDst, config.threadNum)
+    sync.startAlbumSync(config.threadNum)
 except KeyboardInterrupt:
     logging.info("KeyboardInterrupt caught, shutting down")
     sync.forceShutdown()

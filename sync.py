@@ -12,25 +12,29 @@ import subprocess
 import hashlib
 
 import objects
+import utils
 
 
 class musicSync():
 
     albums = {}
     progress = objects.Progress()
-    trackCount = 0
-    blacklist = []
     record = None
     forceShutdownFlag = False
+    dryRun = False
+    syncDst = None
+    encodingQuality = None
 
-    def __init__(self, blacklist, recordPath):
-        self.blacklist = blacklist
-        self.record = objects.Record(recordPath)
+    def __init__(self, config):
+        self.record = objects.Record(config.recordPath)
+        self.dryRun = config.dryRun
+        self.syncDst = config.syncDst
+        self.encodingQuality = config.encodingQuality
 
     def losslessToVorbis(self, src, dst):
-        ''' Converting lossless track to Vorbis Q4 '''
+        ''' Converting lossless track to Vorbis'''
         try:
-            subprocess.run(["ffmpeg", "-v", "warning", "-i", src, "-vn", "-c:a", "libvorbis", "-q", "7", "-y", dst],
+            subprocess.run(["ffmpeg", "-v", "warning", "-i", src, "-vn", "-c:a", "libvorbis", "-q", str(self.encodingQuality), "-y", dst],
                            check=True,
                            stdout=subprocess.PIPE,
                            stderr=subprocess.PIPE)
@@ -40,12 +44,12 @@ class musicSync():
             logging.critical("stderr: \n%s" % (e.stderr.decode("utf-8")))
             exit()
 
-    def checkValid(self, metadata):
+    def checkValid(self, metadata, blacklistAlbum):
         # Length >=15 minutes => Most probably all-in-one file
         if metadata.duration > 60 * 15:
             return False
         # Album name is in blacklist
-        if metadata.album in self.blacklist:
+        if metadata.album in blacklistAlbum:
             return False
         # Track is already converted
         if self.record.queryMetadata(metadata):
@@ -61,7 +65,7 @@ class musicSync():
                 return cover
         return None
 
-    def folderTraversal(self, folderPath):
+    def folderTraversal(self, blacklistAlbum, folderPath):
         for root, subdir, files in os.walk(folderPath):
             hasMusic = False
             albumName = ""
@@ -72,58 +76,57 @@ class musicSync():
                 except LookupError as e:
                     # File is not a valid audio file, skip
                     continue
-                if not(self.checkValid(metadata)):
-                    continue
-                albumName = metadata.album
-                if not albumName in self.albums:
-                    self.albums[albumName] = objects.Album(albumName)
-                self.albums[albumName].tracks.append(
-                    objects.Track(metadata, fullPath))
-                hasMusic = True
-                self.trackCount += 1
+                if self.checkValid(metadata, blacklistAlbum):
+                    albumName = metadata.album
+                    if not albumName in self.albums:
+                        self.albums[albumName] = objects.Album(albumName)
+                    self.albums[albumName].tracks.append(
+                        objects.Track(metadata, fullPath))
+                    hasMusic = True
+                    self.progress.increaseTotal()
             if hasMusic:
                 # Handle cover image
                 self.albums[albumName].coverFile = self.detectCoverFile(root)
                 logging.info("Album: %s with %d song(s)" %
                              (albumName, len(self.albums[albumName].tracks)))
-        self.progress.setTotal(self.trackCount)
 
-    def startAlbumThread(self, syncFolder, album):
-        thread = threading.Thread(target=self.albumHandle, args=(
-            syncFolder, album), name=album.title)
-        thread.start()
-        return thread
-
-    def albumSync(self, syncFolder, threadNum):
+    def startAlbumSync(self, threadNum):
         threads = []
         for albumName, album in self.albums.items():
             # Start processing album in multiple threads
-            # (max number of threads defined in THREAD_NUM
+            # (max number of threads defined in threadNum)
             if self.forceShutdownFlag:
                 break
             isRunning = False
             while not(isRunning):
                 if len(threads) < threadNum:
-                    threads.append(self.startAlbumThread(syncFolder, album))
+                    thread = threading.Thread(
+                        target=self.albumHandle, args=(album, ), name=album.title)
+                    thread.start()
+                    threads.append(thread)
                     isRunning = True
                     continue
                 for thread in threads:
                     if not thread.is_alive():
                         threads.remove(thread)
-                        threads.append(
-                            self.startAlbumThread(syncFolder, album))
+                        thread = threading.Thread(
+                            target=self.albumHandle, args=(album, ), name=album.title)
+                        thread.start()
+                        threads.append(thread)
                         isRunning = True
                         break
-                time.sleep(1)
+                if not self.dryRun:
+                    time.sleep(1)
+                self.record.write()
                 self.progress.printProgress()
         # Wait for all threads to stop
         for thread in threads:
             thread.join()
         self.forceShutdownFlag = False
 
-    def albumHandle(self, syncFolder, album):
+    def albumHandle(self, album):
         ''' Function for handling an album (converting lossless track and moving files) '''
-        dirName = os.path.join(syncFolder, self.santizeName(album.title))
+        dirName = os.path.join(self.syncDst, utils.FAT32Santize(album.title))
         if not os.path.isdir(dirName):
             os.mkdir(dirName)
         if album.coverFile is not None:
@@ -132,38 +135,17 @@ class musicSync():
             if self.forceShutdownFlag:
                 return
             logging.info("Processing track %s" % (track.title))
-            if track.lossless:
-                tmpPath = os.path.join(
-                    "/tmp/", self.santizeName(track.title)) + ".ogg"
-                self.losslessToVorbis(track.filePath, tmpPath)
-                shutil.copy(tmpPath, dirName)
-            else:
-                shutil.move(track.filePath, os.path.join(dirName, self.santizeName(
-                    track.title)) + os.path.splitext(track.filePath)[1])
+            if not self.dryRun:
+                if track.lossless:
+                    tmpPath = os.path.join(
+                        "/tmp/", utils.FAT32Santize(track.title)) + ".ogg"
+                    self.losslessToVorbis(track.filePath, tmpPath)
+                    shutil.copy(tmpPath, dirName)
+                else:
+                    shutil.move(track.filePath, os.path.join(dirName, utils.FAT32Santize(
+                        track.title)) + os.path.splitext(track.filePath)[1])
             self.record.add(track.trackID)
             self.progress.increase()
-            if self.progress.finished%10==0:
-                self.record.write()
-    
-    def genRandomString(self, charset, length):
-        random.join()
-        return ''.join([random.choice(charset) for i in range(length)])
-
-    def santizeName(self, name):
-        ''' Santize name to be compatible with FAT32 system '''
-        if name is None:
-            return genRandomString("0123456789ABCDEF", 5)
-        # Convert Unicode character to ASCII (This need to be done first)
-        # It doesn't and needn't be accurate
-        result = unidecode.unidecode(name)
-        # FAT32 invalid characters
-        ILLEGAL_CHAR = '[' + re.escape("/?<>\:*|\"\\^") + ']'
-        result = re.sub(ILLEGAL_CHAR, '', result)
-        # For some reason creating a directory with trailing space on Linux
-        # will cause "Invalid argument"
-        # \t (tabs character) also causes trouble
-        result = result.strip().replace("\t", "")
-        return result
 
     def forceShutdown(self):
         self.forceShutdownFlag = True

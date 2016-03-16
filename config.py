@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import json
-
+import os
 
 class Config():
     configFile = ""
@@ -17,6 +17,9 @@ class Config():
         self.syncDst = self.getKey(data, 'syncDestination', raiseCheck=True)
         self.blacklistAlbum = self.getKey(data, 'blacklistAlbum', default=[])
         self.threadNum = self.getKey(data, 'threadNum', default=1)
+        self.dryRun = self.getKey(data, 'dryRun', default=False)
+        self.encodingQuality = self.getKey(data, 'encodingQuality', default=7)
+        self.recordPath=os.path.join(self.syncDst, "record.json")
 
     def write(self):
         data = {'syncSource': self.syncSrc, 'syncDestination': self.syncDst,

@@ -16,9 +16,6 @@ class Progress():
     def __init__(self):
         pass
 
-    def setTotal(self, total):
-        self.total = total
-
     def printProgress(self):
         logging.info(
             "Processed {}/{} tracks ({:.2f}%)".format(self.finished, self.total, self.percent))
@@ -27,6 +24,11 @@ class Progress():
         self.threadLock.acquire()
         self.finished += 1
         self.percent = (self.finished / self.total) * 100
+        self.threadLock.release()
+
+    def increaseTotal(self):
+        self.threadLock.acquire()
+        self.total+=1
         self.threadLock.release()
 
 
@@ -46,8 +48,7 @@ class Track():
 
     def genID(self, metadata):
         mtdID = "{0.album}:{0.title}:{0.duration:.3f}".format(metadata)
-        return mtdID
-        # return hashlib.md5(mtdID.encode()).hexdigest()
+        return hashlib.md5(mtdID.encode()).hexdigest()
 
 
 class Album():
@@ -91,8 +92,7 @@ class Record():
 
     def genID(self, metadata):
         mtdID = "{0.album}:{0.title}:{0.duration:.3f}".format(metadata)
-        return mtdID
-        # return hashlib.md5(mtdID.encode()).hexdigest()
+        return hashlib.md5(mtdID.encode()).hexdigest()
 
     def write(self):
         with open(self.filePath, "w") as f:
