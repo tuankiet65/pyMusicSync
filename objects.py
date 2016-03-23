@@ -53,14 +53,14 @@ class Track():
 
 class Album():
     ''' Class representing an album '''
-    title = ""
+    title = None
     tracks = []
-    coverFile = ""
+    coverFile = None
 
     def __init__(self, title):
         self.title = title
         self.tracks = []
-        self.coverFile = ""
+        self.coverFile = None
 
 
 class Record():
