@@ -6,5 +6,7 @@
     "syncSource": [
         "Directories where you'd like to be searched for music"
     ],
-    "syncDestination": "Sync destionation, usually your SD card"
+    "syncDestination": "Sync destionation, usually your SD card",
+    "dryRun": false,
+    "encodingQuality": 7
 }

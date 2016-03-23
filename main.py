@@ -21,6 +21,7 @@ sync = sync.musicSync(config=config)
 for folder in config.syncSrc:
     sync.folderTraversal(config.blacklistAlbum, folder)
 
+sync.prune()
 
 try:
     sync.startAlbumSync(config.threadNum)

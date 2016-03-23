@@ -3,6 +3,7 @@
 import random
 import unidecode
 import re
+import hashlib
 
 def genRandomString(charset, length):
     random.seed()
@@ -23,3 +24,7 @@ def FAT32Santize(name):
     # \t (tabs character) also causes trouble
     result = result.strip().replace("\t", "")
     return result
+
+def genID(metadata):
+    mtdID = "{0.album}:{0.title}:{0.duration:.3f}".format(metadata)
+    return hashlib.md5(mtdID.encode()).hexdigest()

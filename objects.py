@@ -6,6 +6,7 @@ import os
 import json
 import hashlib
 
+import utils
 
 class Progress():
     threadLock = threading.Lock()
@@ -28,7 +29,7 @@ class Progress():
 
     def increaseTotal(self):
         self.threadLock.acquire()
-        self.total+=1
+        self.total += 1
         self.threadLock.release()
 
 
@@ -36,6 +37,9 @@ class Track():
     ''' Class representing a track (in an album) '''
     title = ""
     filePath = ""
+    # file path when synced, this is useful when deleting old tracks
+    # File path relative to syncDst
+    syncedFilePath = ""
     lossless = False
     trackID = ""
 
@@ -44,11 +48,7 @@ class Track():
         self.filePath = filePath
         ext = os.path.splitext(filePath)
         self.lossless = ((ext[1] == ".flac") or (ext[1] == ".wma"))
-        self.trackID = self.genID(metadata)
-
-    def genID(self, metadata):
-        mtdID = "{0.album}:{0.title}:{0.duration:.3f}".format(metadata)
-        return hashlib.md5(mtdID.encode()).hexdigest()
+        self.trackID = utils.genID(metadata)
 
 
 class Album():
@@ -65,12 +65,12 @@ class Album():
 
 class Record():
     ''' Class representing a record file to keep track of converted and synced file '''
+    threadLock = threading.Lock()
     filePath = ""
-    record = []
+    record = {} # <trackID>:<filePath>
 
     def __init__(self, filePath):
         self.filePath = filePath
-        record = []
         if not(os.path.isfile(self.filePath)):
             self.write()
         self.read()
@@ -79,21 +79,24 @@ class Record():
         with open(self.filePath) as f:
             self.record = json.load(f)
 
-    def add(self, trackID):
-        # list.append is thread-safe
-        self.record.append(trackID)
+    def add(self, track):
+        # Not thread-safe
+        self.threadLock.acquire()
+        self.record[track.trackID] = track.syncedFilePath
+        self.threadLock.release()
 
-    def query(self, trackID):
+    def remove(self, trackID):
+        self.threadLock.acquire()
+        del self.record[trackID]
+        self.threadLock.release()
+
+    def query(self, metadata):
+        trackID = utils.genID(metadata)
         return (trackID in self.record)
 
-    def queryMetadata(self, metadata):
-        trackID = self.genID(metadata)
-        return trackID in self.record
-
-    def genID(self, metadata):
-        mtdID = "{0.album}:{0.title}:{0.duration:.3f}".format(metadata)
-        return hashlib.md5(mtdID.encode()).hexdigest()
-
     def write(self):
+        # Threads are crazy, right?
+        self.threadLock.acquire()
         with open(self.filePath, "w") as f:
             json.dump(self.record, f, indent=4)
+        self.threadLock.release()

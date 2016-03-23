@@ -10,6 +10,8 @@ from tinytag import TinyTag
 import unidecode
 import subprocess
 import hashlib
+import tempfile
+import copy
 
 import objects
 import utils
@@ -18,7 +20,10 @@ import utils
 class musicSync():
 
     albums = {}
+    blacklistAlbum = []
+    trackIDList = []
     progress = objects.Progress()
+    oldRecord = None
     record = None
     forceShutdownFlag = False
     dryRun = False
@@ -26,7 +31,9 @@ class musicSync():
     encodingQuality = None
 
     def __init__(self, config):
+        self.blacklistAlbum = config.blacklistAlbum
         self.record = objects.Record(config.recordPath)
+        self.oldRecord = copy.deepcopy(self.record)
         self.dryRun = config.dryRun
         self.syncDst = config.syncDst
         self.encodingQuality = config.encodingQuality
@@ -44,22 +51,22 @@ class musicSync():
             logging.critical("stderr: \n%s" % (e.stderr.decode("utf-8")))
             exit()
 
-    def checkValid(self, metadata, blacklistAlbum):
+    def checkValid(self, metadata):
         # Length >=15 minutes => Most probably all-in-one file
         if metadata.duration > 60 * 15:
             return False
         # Album name is in blacklist
-        if metadata.album in blacklistAlbum:
+        if metadata.album in self.blacklistAlbum:
             return False
         # Track is already converted
-        if self.record.queryMetadata(metadata):
+        if self.record.query(metadata):
             return False
         return True
 
     def detectCoverFile(self, root):
-        possibleName = ["cover_override.jpg", "cover.png", "cover.jpg", "folder.jpg",
-                        "Cover.jpg", "folder.jpeg", "cover.jpeg"]
-        for name in possibleName:
+        possibleNames = ["cover_override.jpg", "cover.png", "cover.jpg", "folder.jpg",
+                         "Cover.jpg", "folder.jpeg", "cover.jpeg"]
+        for name in possibleNames:
             cover = os.path.join(root, name)
             if os.path.isfile(cover):
                 return cover
@@ -76,12 +83,13 @@ class musicSync():
                 except LookupError as e:
                     # File is not a valid audio file, skip
                     continue
-                if self.checkValid(metadata, blacklistAlbum):
+                self.trackIDList.append(utils.genID(metadata))
+                if self.checkValid(metadata):
                     albumName = metadata.album
                     if not albumName in self.albums:
                         self.albums[albumName] = objects.Album(albumName)
-                    self.albums[albumName].tracks.append(
-                        objects.Track(metadata, fullPath))
+                    newTrack = objects.Track(metadata, fullPath)
+                    self.albums[albumName].tracks.append(newTrack)
                     hasMusic = True
                     self.progress.increaseTotal()
             if hasMusic:
@@ -126,7 +134,7 @@ class musicSync():
 
     def albumHandle(self, album):
         ''' Function for handling an album (converting lossless track and moving files) '''
-        dirName = os.path.join(self.syncDst, utils.FAT32Santize(album.title))
+        dirName = self.returnFilePath(album=album.title, absolute=True)
         if not os.path.isdir(dirName):
             os.mkdir(dirName)
         if album.coverFile is not None:
@@ -137,15 +145,33 @@ class musicSync():
             logging.info("Processing track %s" % (track.title))
             if not self.dryRun:
                 if track.lossless:
-                    tmpPath = os.path.join(
-                        "/tmp/", utils.FAT32Santize(track.title)) + ".ogg"
-                    self.losslessToVorbis(track.filePath, tmpPath)
-                    shutil.move(tmpPath, dirName)
+                    track.syncedFilePath = self.returnFilePath(
+                        album.title, track.title, suffix=".ogg")
+                    tmpFile = tempfile.mkstemp(suffix=".ogg")[1]
+                    self.losslessToVorbis(track.filePath, tmpFile)
+                    shutil.move(tmpFile, os.path.join(
+                        self.syncDst, track.syncedFilePath))
                 else:
-                    shutil.move(track.filePath, os.path.join(dirName, utils.FAT32Santize(
-                        track.title)) + os.path.splitext(track.filePath)[1])
-            self.record.add(track.trackID)
+                    track.syncedFilePath = self.returnFilePath(
+                        album.title, track.title, suffix=os.path.splitext(track.filePath)[1])
+                    shutil.copy(track.filePath, os.path.join(
+                        self.syncDst, track.syncedFilePath))
+            self.record.add(track)
             self.progress.increase()
+
+    def prune(self):
+        ''' Deleting old tracks'''
+        possibleCoverNames = set(["cover_override.jpg", "cover.png", "cover.jpg", "folder.jpg",
+                         "Cover.jpg", "folder.jpeg", "cover.jpeg"])
+        for trackID, filePath in self.oldRecord.record.items():
+            if trackID not in self.trackIDList:
+                logging.info("Removing old track {}".format(trackID))
+                os.remove(os.path.join(self.syncDst, filePath))
+                self.record.remove(trackID)
+                fileDir=os.path.join(self.syncDst, os.path.split(filePath)[0])
+                if set(os.listdir(fileDir))-possibleCoverNames==set():
+                    logging.info("Removing empty folder {}".format(fileDir))
+                    shutil.rmtree(fileDir)
 
     def forceShutdown(self):
         self.forceShutdownFlag = True
@@ -155,3 +181,11 @@ class musicSync():
 
     def shutdown(self):
         self.record.write()
+
+    def returnFilePath(self, album="", title="", suffix="", absolute=False):
+        filePath = os.path.join(utils.FAT32Santize(
+            album), utils.FAT32Santize(title))
+        if absolute:
+            filePath = os.path.join(self.syncDst, filePath)
+        filePath = filePath + suffix
+        return filePath
