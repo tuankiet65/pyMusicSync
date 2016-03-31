@@ -2,6 +2,7 @@
 
 import json
 import os
+import encoder
 
 class Config():
     configFile = ""
@@ -18,8 +19,9 @@ class Config():
         self.blacklistAlbum = self.getKey(data, 'blacklistAlbum', default=[])
         self.threadNum = self.getKey(data, 'threadNum', default=1)
         self.dryRun = self.getKey(data, 'dryRun', default=False)
-        self.encodingQuality = self.getKey(data, 'encodingQuality', default=7)
         self.recordPath=os.path.join(self.syncDst, "record.json")
+        tmp=self.getKey(data, 'encoder', default={"codec": "mp3", "bitrate": "320k"})
+        self.encoderSetting=encoder.EncoderSetting(**tmp)
 
     def write(self):
         data = {'syncSource': self.syncSrc, 'syncDestination': self.syncDst,

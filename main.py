@@ -7,7 +7,7 @@ import sync
 import config
 import objects
 
-logging.basicConfig(format="[%(asctime)s][%(funcName)s][%(threadName)s] %(message)s",
+logging.basicConfig(format="[%(asctime)s][%(funcName)s] %(message)s",
                     datefmt="%Y-%m-%d %H:%M:%S",
                     level=logging.NOTSET)
 
@@ -23,12 +23,8 @@ for folder in config.syncSrc:
 
 sync.prune()
 
-try:
-    sync.startAlbumSync(config.threadNum)
-except KeyboardInterrupt:
-    logging.info("KeyboardInterrupt caught, shutting down")
-    sync.forceShutdown()
-else:
-    sync.shutdown()
+sync.startSync()
+
+sync.shutdown()
 
 logging.shutdown()

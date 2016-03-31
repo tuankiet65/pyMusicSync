@@ -8,5 +8,8 @@
     ],
     "syncDestination": "Sync destionation, usually your SD card",
     "dryRun": false,
-    "encodingQuality": 7
+    "encoder": {
+        "codec": "opus",
+        "bitrate": "192k"
+    }
 }
