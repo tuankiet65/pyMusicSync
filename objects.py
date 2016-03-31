@@ -37,8 +37,7 @@ class Track():
     ''' Class representing a track (in an album) '''
     title = ""
     filePath = ""
-    # file path when synced, this is useful when deleting old tracks
-    # File path relative to syncDst
+    # file path relative to syncDst, this is useful when deleting old track
     syncedFilePath = ""
     lossless = False
     trackID = ""

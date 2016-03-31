@@ -6,12 +6,12 @@ import shutil
 import threading
 import time
 import re
-from tinytag import TinyTag
-import unidecode
 import subprocess
 import hashlib
 import copy
 import queue
+from tinytag import TinyTag
+import unidecode
 
 import objects
 import utils
@@ -120,9 +120,11 @@ class musicSync():
                 shutil.copy(album.coverFile, dirName)
             for track in album.tracks:
                 self.trackQueue.put((album.title, track))
+            self.record.write()
         for i in range(self.threadNum):
             self.trackQueue.put((None, None))
         self.trackQueue.join()
+        self.record.write()
 
     def prune(self):
         ''' Deleting old tracks'''

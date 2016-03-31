@@ -24,6 +24,7 @@ class Config():
         self.encoderSetting=encoder.EncoderSetting(**tmp)
 
     def write(self):
+        # TODO: Fix config write
         data = {'syncSource': self.syncSrc, 'syncDestination': self.syncDst,
                 'blacklistAlbum': self.blacklistAlbum, 'threadNum': self.threadNum}
         with open(self.configFile, 'w') as f:
