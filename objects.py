@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 
 import threading
-import logging
 import os
 import json
-import hashlib
 
 import utils
 
-class Progress():
+
+class Progress:
     threadLock = threading.Lock()
     finished = 0
     total = 0
@@ -17,24 +16,15 @@ class Progress():
     def __init__(self):
         pass
 
-    def printProgress(self):
-        logging.info(
-            "Processed {}/{} tracks ({:.2f}%)".format(self.finished, self.total, self.percent))
-
     def increase(self):
         self.threadLock.acquire()
         self.finished += 1
         self.percent = (self.finished / self.total) * 100
         self.threadLock.release()
 
-    def increaseTotal(self):
-        self.threadLock.acquire()
-        self.total += 1
-        self.threadLock.release()
 
-
-class Track():
-    ''' Class representing a track (in an album) '''
+class Track:
+    """ Class representing a track (in an album) """
     title = ""
     filePath = ""
     # file path relative to syncDst, this is useful when deleting old track
@@ -50,8 +40,8 @@ class Track():
         self.trackID = utils.genID(metadata)
 
 
-class Album():
-    ''' Class representing an album '''
+class Album:
+    """ Class representing an album """
     title = None
     tracks = []
     coverFile = None
@@ -62,15 +52,15 @@ class Album():
         self.coverFile = None
 
 
-class Record():
-    ''' Class representing a record file to keep track of converted and synced file '''
+class Record:
+    """ Class representing a record file to keep track of converted and synced file """
     threadLock = threading.Lock()
     filePath = ""
-    record = {} # <trackID>:<filePath>
+    record = {}  # <trackID>:<filePath>
 
     def __init__(self, filePath):
         self.filePath = filePath
-        if not(os.path.isfile(self.filePath)):
+        if not (os.path.isfile(self.filePath)):
             self.write()
         self.read()
 
@@ -91,7 +81,7 @@ class Record():
 
     def query(self, metadata):
         trackID = utils.genID(metadata)
-        return (trackID in self.record)
+        return trackID in self.record
 
     def write(self):
         # Threads are crazy, right?

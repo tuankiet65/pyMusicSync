@@ -1,24 +1,21 @@
 #!/usr/bin/env python3
 
 import subprocess
-import queue
-import threading
 import tempfile
 import shutil
-import logging
 
 
-class EncoderSetting():
-
-    def __init__(self, codec, bitrate):
+class EncoderSetting:
+    def __init__(self, config):
         codecMap = {
             "mp3": ("libmp3lame", ".mp3"),
             "opus": ("libopus", ".mkv"),  # Android compability
             "ogg": ("libvorbis", ".ogg"),
             "aac": (self.detect_fdkaac(), ".mp4")
         }
-        self.encoder, self.ext = codecMap[codec]
-        self.bitrate = bitrate
+        self.encoder, self.ext = codecMap[config.codec]
+        self.bitrateControl = config.bitrateControl
+        self.quality = config.quality
 
     def detect_fdkaac(self):
         ffmpegOutput = subprocess.check_output(
@@ -27,7 +24,9 @@ class EncoderSetting():
             return "libfdk_aac"
         else:
             print(
-                "If your encoding setting is AAC, please consider\ncompiling FFmpeg with libfdk_aac for better audio quality\ncompared to FFmpeg's native AAC encoder")
+                "If your encoding setting is AAC, please consider\n"
+                "compiling FFmpeg with libfdk_aac for better audio quality\n"
+                "compared to FFmpeg's native AAC encoder")
             return "aac"
 
 
@@ -35,10 +34,14 @@ def encode(src, dst, setting):
     tmpFile = tempfile.mkstemp(suffix=setting.ext)[1]
     dst = dst + setting.ext
 
-    subprocess.run(["ffmpeg", "-v", "warning",
-                    "-i", src, "-vn",
-                    "-c:a", setting.encoder, "-b:a", setting.bitrate,
-                    "-y", tmpFile],
+    param = ["ffmpeg", "-v", "warning", "i", src, "-vn" "-c:a", setting.encoder]
+    if setting.bitrateControl == "vbr":
+        param.extend(["-q:a", setting.quality])
+    else:
+        if setting.bitrateControl == "cbr":
+            param.extend(["-b:a", setting.quality])
+    param.extend(["-y", tmpFile])
+    subprocess.run(param,
                    check=True,
                    stdin=subprocess.DEVNULL,
                    stdout=subprocess.DEVNULL,
