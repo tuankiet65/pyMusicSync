@@ -18,7 +18,8 @@ class Config():
             "codec": "mp3",
             "bitrateControl": "vbr",
             "quality": "0"
-        }
+        },
+        "autosaveInterval": 5
     }
 
     def __init__(self, configFile):

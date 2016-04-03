@@ -48,3 +48,4 @@ def encode(src, dst, setting):
                    stderr=subprocess.DEVNULL)
 
     shutil.move(tmpFile, dst)
+    return dst

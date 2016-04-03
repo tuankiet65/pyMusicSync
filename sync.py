@@ -3,8 +3,7 @@
 import os
 import logging
 import shutil
-import threading
-import queue
+import concurrent.futures
 from tinytag import TinyTag
 
 import objects
@@ -18,9 +17,9 @@ class musicSync:
     progress = objects.Progress()
 
     def __init__(self, config):
-        self.record = objects.Record(config.recordPath)
+        self.record = objects.Record(config.recordPath, config.autosaveDuration)
         self.config = config
-        self.trackQueue = queue.Queue(maxsize=self.config.threadNum)
+        self.record.startAutosave()
 
     def __checkValid(self, metadata):
         # Length >=15 minutes => Most probably all-in-one file
@@ -30,7 +29,7 @@ class musicSync:
         if metadata.album in self.config.blacklistAlbum:
             return False
         # Track is already converted
-        if self.record.query(metadata):
+        if metadata in self.record:
             return False
         return True
 
@@ -62,7 +61,7 @@ class musicSync:
                     if albumName not in self.albums:
                         self.albums[albumName] = objects.Album(albumName)
                     newTrack = objects.Track(metadata, fullPath)
-                    self.albums[albumName].tracks.append(newTrack)
+                    self.albums[albumName].addTrack(newTrack)
                     hasMusic = True
                     trackCount += 1
             if hasMusic:
@@ -72,69 +71,49 @@ class musicSync:
                              (albumName, len(self.albums[albumName].tracks)))
         self.progress.total = trackCount
 
-    def __trackHandle(self):
-        while True:
-            albumName, track = self.trackQueue.get()
-            if albumName is None and track is None:
-                self.trackQueue.task_done()
-                return
-            logging.info("Processing track {}".format(track.title))
-            if not self.config.dryRun:
-                if track.lossless:
-                    encoder.encode(track.filePath, self.__returnFilePath(albumName, track.title),
-                                   self.config.encoderSetting)
-                    track.syncedFilePath = self.__returnFilePath(albumName, track.title,
-                                                                 ext=self.config.encoderSetting.ext,
-                                                                 absolute=False)
-                else:
-                    track.syncedFilePath = self.__returnFilePath(albumName, track.title,
-                                                                 ext=os.path.splitext(track.filePath)[1],
-                                                                 absolute=False)
-                    shutil.copy(track.filePath, os.path.join(
-                        self.config.syncDst, track.syncedFilePath))
-            self.record.add(track)
-            self.progress.increase()
-            self.trackQueue.task_done()
+    def __trackHandle(self, albumName, track):
+        logging.info("Processing track {}".format(track.title))
+        if not self.config.dryRun:
+            if track.lossless:
+                track.syncedFilePath = encoder.encode(track.filePath, self.__getFilePath(albumName, track.title),
+                                                      self.config.encoderSetting)
+            else:
+                track.syncedFilePath = self.__getFilePath(albumName, track.title,
+                                                          ext=os.path.splitext(track.filePath)[1])
+                shutil.copy(track.filePath, track.syncedFilePath)
+        self.record.add(track)
+        self.progress.increase()
 
     def startSync(self):
-        for i in range(self.config.threadNum):
-            threading.Thread(target=self.__trackHandle).start()
+        executor = concurrent.futures.ThreadPoolExecutor(max_workers=self.config.threadNum)
         for albumName, album in self.albums.items():
             logging.info("Processing album {}".format(albumName))
-            dirName = self.__returnFilePath(album=album.title)
+            dirName = self.__getFilePath(album=albumName)
             if not os.path.isdir(dirName):
                 os.mkdir(dirName)
             if album.coverFile is not None:
                 shutil.copy(album.coverFile, dirName)
             for track in album.tracks:
-                self.trackQueue.put((album.title, track))
-            self.record.write()
-        for i in range(self.config.threadNum):
-            self.trackQueue.put((None, None))
-        self.trackQueue.join()
-        self.record.write()
+                executor.submit(self.__trackHandle, albumName, track)
+        executor.shutdown()
 
     def prune(self):
-        """ Deleting old tracks"""
         possibleCoverNames = {"cover_override.jpg", "cover.png", "cover.jpg", "folder.jpg", "Cover.jpg", "folder.jpeg",
                               "cover.jpeg"}
-        for trackID in self.record.record.keys():
+        for trackID in self.record.idList():
             if trackID not in self.trackIDList:
                 logging.info("Removing old track {}".format(trackID))
-                os.remove(os.path.join(self.config.syncDst, self.record.record[trackID]))
-                fileDir = os.path.join(
-                    self.config.syncDst, os.path.split(self.record.record[trackID])[0])
-                del self.record.record[trackID]
+                os.remove(self.record.get(trackID))
+                self.record.remove(trackID)
+                fileDir = os.path.split(self.record.get(trackID))[0]
                 if set(os.listdir(fileDir)) - possibleCoverNames == set():
                     logging.info("Removing empty folder {}".format(fileDir))
                     shutil.rmtree(fileDir)
 
     def shutdown(self):
+        self.record.stopAutosave()
         self.record.write()
 
-    def __returnFilePath(self, album="", title="", ext="", absolute=True):
-        filePath = os.path.join(utils.FAT32Santize(album), utils.FAT32Santize(title))
-        if absolute:
-            filePath = os.path.join(self.config.syncDst, filePath)
-        filePath += ext
-        return filePath
+    @staticmethod
+    def __getFilePath(album="", title="", ext=""):
+        return os.path.join(utils.FAT32Santize(album), utils.FAT32Santize(title)) + ext

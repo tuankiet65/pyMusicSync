@@ -15,6 +15,8 @@ config = config.Config("./config.json")
 if not os.path.isdir(config.syncDestination):
     os.mkdir(config.syncDestination)
 
+os.chdir(config.syncDestination)
+
 sync = sync.musicSync(config=config)
 
 for folder in config.syncDestionation:
