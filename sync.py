@@ -61,7 +61,7 @@ class musicSync:
                     if albumName not in self.albums:
                         self.albums[albumName] = objects.Album(albumName)
                     newTrack = objects.Track(metadata, fullPath)
-                    self.albums[albumName].addTrack(newTrack)
+                    self.albums[albumName].add(newTrack)
                     hasMusic = True
                     trackCount += 1
             if hasMusic:
@@ -71,35 +71,38 @@ class musicSync:
                              (albumName, len(self.albums[albumName].tracks)))
         self.progress.total = trackCount
 
-    def __trackHandle(self, albumName, track):
+    def __trackHandle(self, track):
         logging.info("Processing track {}".format(track.title))
         if not self.config.dryRun:
             if track.lossless:
-                track.syncedFilePath = encoder.encode(track.filePath, self.__getFilePath(albumName, track.title),
+                track.syncedFilePath = encoder.encode(track.filePath, self.__getFilePath(track),
                                                       self.config.encoderSetting)
             else:
-                track.syncedFilePath = self.__getFilePath(albumName, track.title,
-                                                          ext=os.path.splitext(track.filePath)[1])
+                track.syncedFilePath = self.__getFilePath(track, ext=os.path.splitext(track.filePath)[1])
                 shutil.copy(track.filePath, track.syncedFilePath)
         self.record.add(track)
         self.progress.increase()
+
+    @staticmethod
+    def __createAlbumDirectory(album):
+        dirName = utils.FAT32Santize(album.title)
+        if not os.path.isdir(dirName):
+            os.mkdir(dirName)
+        if album.coverFile is not None:
+            shutil.copy(album.coverFile, dirName)
 
     def startSync(self):
         executor = concurrent.futures.ThreadPoolExecutor(max_workers=self.config.threadNum)
         for albumName, album in self.albums.items():
             logging.info("Processing album {}".format(albumName))
-            dirName = self.__getFilePath(album=albumName)
-            if not os.path.isdir(dirName):
-                os.mkdir(dirName)
-            if album.coverFile is not None:
-                shutil.copy(album.coverFile, dirName)
+            self.__createAlbumDirectory(self.albums[albumName])
             for track in album.tracks:
-                executor.submit(self.__trackHandle, albumName, track)
+                executor.submit(self.__trackHandle, track)
         executor.shutdown()
 
     def prune(self):
-        possibleCoverNames = {"cover_override.jpg", "cover.png", "cover.jpg", "folder.jpg", "Cover.jpg", "folder.jpeg",
-                              "cover.jpeg"}
+        possibleCoverNames = {"cover_override.jpg", "cover.png", "cover.jpg", "folder.jpg",
+                              "Cover.jpg", "folder.jpeg", "cover.jpeg"}
         for trackID in self.record.idList():
             if trackID not in self.trackIDList:
                 logging.info("Removing old track {}".format(trackID))
@@ -115,5 +118,6 @@ class musicSync:
         self.record.write()
 
     @staticmethod
-    def __getFilePath(album="", title="", ext=""):
-        return os.path.join(utils.FAT32Santize(album), utils.FAT32Santize(title)) + ext
+    def __getFilePath(track, ext=""):
+        return os.path.join(utils.FAT32Santize(track.album),
+                            "{trackNum:02d}. {title}{ext}".format(trackNum=track.trackNum, title=track.title, ext=ext))

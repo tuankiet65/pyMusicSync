@@ -13,11 +13,16 @@ class EncoderSetting:
             "ogg": ("libvorbis", ".ogg"),
             "aac": (self.detect_fdkaac(), ".mp4")
         }
+        self.config = config
         self.encoder, self.ext = codecMap[config.codec]
         self.bitrateControl = config.bitrateControl
         self.quality = config.quality
 
-    def detect_fdkaac(self):
+    def toDict(self):
+        return self.config
+
+    @staticmethod
+    def detect_fdkaac():
         ffmpegOutput = subprocess.check_output(
             ["ffmpeg", "-codecs"], stderr=subprocess.DEVNULL).decode("utf-8")
         if "libfdk_aac" in ffmpegOutput:
@@ -37,10 +42,10 @@ def encode(src, dst, setting):
     param = ["ffmpeg", "-v", "warning", "i", src, "-vn" "-c:a", setting.encoder]
     if setting.bitrateControl == "vbr":
         param.extend(["-q:a", setting.quality])
-    else:
-        if setting.bitrateControl == "cbr":
-            param.extend(["-b:a", setting.quality])
+    elif setting.bitrateControl == "cbr":
+        param.extend(["-b:a", setting.quality])
     param.extend(["-y", tmpFile])
+
     subprocess.run(param,
                    check=True,
                    stdin=subprocess.DEVNULL,

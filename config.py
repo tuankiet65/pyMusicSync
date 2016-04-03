@@ -4,6 +4,7 @@ import json
 import os
 import encoder
 
+
 class Config():
     configFile = ""
     REQUIRED_OPTIONS = [
@@ -29,7 +30,7 @@ class Config():
     def read(self):
         with open(self.configFile) as f:
             data = json.load(f)
-        for v in REQUIRES_VARIABLES:
+        for v in self.REQUIRED_OPTIONS:
             self.__setattr__(v, self.__getKey(data, v, raiseCheck=True))
         for v, default in self.OPTIONAL_OPTIONS.items():
             self.__setattr__(v, self.__getKey(data, v, default=default))
@@ -41,6 +42,7 @@ class Config():
             data[v] = self.__getattr__(v)
         for v in self.OPTIONAL_OPTIONS.keys():
             data[v] = self.__getattr__(v)
+        data.encoderSetting = data.encoderSetting.toDict()
         with open(self.configFile, 'w') as f:
             json.dump(data, f, indent=4)
 

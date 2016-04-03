@@ -29,11 +29,13 @@ class Track:
         All file path are relative to syncDst """
 
     def __init__(self, metadata, filePath):
+        self.album = metadata.album
         self.title = metadata.title
         self.filePath = filePath
         ext = os.path.splitext(filePath)
         self.lossless = ((ext[1] == ".flac") or (ext[1] == ".wma"))
         self.trackID = utils.genID(metadata)
+        self.trackNumber = int(metadata.track)
 
 
 class Album:
@@ -44,7 +46,7 @@ class Album:
         self.tracks = []
         self.coverFile = None
 
-    def addTrack(self, track):
+    def add(self, track):
         self.tracks.append(track)
 
 
