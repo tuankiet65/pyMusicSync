@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 
-import os
-import logging
-import shutil
 import concurrent.futures
+import logging
+import os
+import shutil
+
 from tinytag import TinyTag
 
-import objects
-import utils
-import encoder
+from pyMusicSync import encoder
+from pyMusicSync import objects
+from pyMusicSync import utils
 
 
 class musicSync:
@@ -17,7 +18,7 @@ class musicSync:
     progress = objects.Progress()
 
     def __init__(self, config):
-        self.record = objects.Record(config.recordPath, config.autosaveDuration)
+        self.record = objects.Record("record.json", config.autosaveInterval)
         self.config = config
         self.record.startAutosave()
 
@@ -26,7 +27,7 @@ class musicSync:
         if metadata.duration > 60 * 15:
             return False
         # Album name is in blacklist
-        if metadata.album in self.config.blacklistAlbum:
+        if str(metadata.album) in self.config.blacklistAlbum:
             return False
         # Track is already converted
         if metadata in self.record:
@@ -57,7 +58,7 @@ class musicSync:
                     continue
                 self.trackIDList.add(utils.genID(metadata))
                 if self.__checkValid(metadata):
-                    albumName = metadata.album
+                    albumName = str(metadata.album)
                     if albumName not in self.albums:
                         self.albums[albumName] = objects.Album(albumName)
                     newTrack = objects.Track(metadata, fullPath)
@@ -72,7 +73,7 @@ class musicSync:
         self.progress.total = trackCount
 
     def __trackHandle(self, track):
-        logging.info("Processing track {}".format(track.title))
+        logging.info("Processing track {} ({:.2f}%)".format(track.title, self.progress.percent))
         if not self.config.dryRun:
             if track.lossless:
                 track.syncedFilePath = encoder.encode(track.filePath, self.__getFilePath(track),
@@ -85,7 +86,7 @@ class musicSync:
 
     @staticmethod
     def __createAlbumDirectory(album):
-        dirName = utils.FAT32Santize(album.title)
+        dirName = utils.pathSanitize(album.title)
         if not os.path.isdir(dirName):
             os.mkdir(dirName)
         if album.coverFile is not None:
@@ -94,7 +95,7 @@ class musicSync:
     def startSync(self):
         executor = concurrent.futures.ThreadPoolExecutor(max_workers=self.config.threadNum)
         for albumName, album in self.albums.items():
-            logging.info("Processing album {}".format(albumName))
+            logging.info("Initializing album {}".format(albumName))
             self.__createAlbumDirectory(self.albums[albumName])
             for track in album.tracks:
                 executor.submit(self.__trackHandle, track)
@@ -107,17 +108,23 @@ class musicSync:
             if trackID not in self.trackIDList:
                 logging.info("Removing old track {}".format(trackID))
                 os.remove(self.record.get(trackID))
-                self.record.remove(trackID)
                 fileDir = os.path.split(self.record.get(trackID))[0]
                 if set(os.listdir(fileDir)) - possibleCoverNames == set():
                     logging.info("Removing empty folder {}".format(fileDir))
                     shutil.rmtree(fileDir)
+                self.record.remove(trackID)
 
     def shutdown(self):
-        self.record.stopAutosave()
+        self.record.killAutosave()
         self.record.write()
 
     @staticmethod
     def __getFilePath(track, ext=""):
-        return os.path.join(utils.FAT32Santize(track.album),
-                            "{trackNum:02d}. {title}{ext}".format(trackNum=track.trackNum, title=track.title, ext=ext))
+        directory = utils.pathSanitize(track.album)
+        if track.trackNumber is None:
+            filename = "{title}{ext}"
+        else:
+            filename = "{trackNum:02d}. {title}{ext}"
+        filename = filename.format(trackNum=track.trackNumber, title=utils.pathSanitize(track.title), ext=ext)
+
+        return os.path.join(directory, filename)

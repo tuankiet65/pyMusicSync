@@ -1,0 +1,25 @@
+{
+  "threadNum": 3,
+  "blacklistAlbum": [
+    "EDM.com Exclusives",
+    "Unknown Title",
+    "None",
+    "",
+    "All Covers",
+    "Unknown Title\u0000",
+    "Solutions Advanced Workbook CD",
+    "CAE Results",
+    "mp3.zing.vn"
+  ],
+  "syncSource": [
+    "/media/Entertainment"
+  ],
+  "syncDestination": "/media/Data1/pyMusicSync/testEnv/dst",
+  "dryRun": false,
+  "encoderSetting": {
+    "codec": "opus",
+    "bitrateControl": "cbr",
+    "quality": "192k"
+  },
+  "autosaveInterval": 1
+}

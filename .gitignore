@@ -1,4 +1,14 @@
-__pycache__
-config.json
-testEnv
-.idea
+# Byte-compiled / optimized / DLL files
+__pycache__/
+pyMusicEnv/__pycache__/
+*.py[cod]
+*$py.class
+
+# virtualenv
+.venv/
+
+# PyCharm
+.idea/
+
+# Test environment
+testEnv/

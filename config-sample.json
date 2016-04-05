@@ -1,17 +1,17 @@
 {
-    "threadNum": 1, 
-    "blacklistAlbum": [
-		"Albums that you don't want to sync goes here"
-    ],
-    "syncSource": [
-        "Directories where you'd like to be searched for music"
-    ],
-    "syncDestination": "Sync destionation, usually your SD card",
-    "dryRun": false,
+  "threadNum": 1,
+  "blacklistAlbum": [
+    "Albums that you don't want to sync goes here"
+  ],
+  "syncSource": [
+    "Directories where you'd like to be searched for music"
+  ],
+  "syncDestination": "Sync destination, usually your SD card",
+  "dryRun": false,
   "encoderSetting": {
     "codec": "opus",
-    "bitrateControl": "vbr",
-    "quality": "0",
+    "bitrateControl": "cbr",
+    "quality": "192k"
   },
   "autosaveInterval": 5
 }

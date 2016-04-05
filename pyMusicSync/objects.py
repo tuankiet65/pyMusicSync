@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 
-import threading
-import os
 import json
+import logging
+import os
+import threading
 import time
 
-import utils
+from pyMusicSync import utils
 
 
 class Progress:
@@ -18,10 +19,9 @@ class Progress:
         pass
 
     def increase(self):
-        self.threadLock.acquire()
-        self.finished += 1
-        self.percent = (self.finished / self.total) * 100
-        self.threadLock.release()
+        with self.threadLock:
+            self.finished += 1
+            self.percent = (self.finished / self.total) * 100
 
 
 class Track:
@@ -29,20 +29,23 @@ class Track:
         All file path are relative to syncDst """
 
     def __init__(self, metadata, filePath):
-        self.album = metadata.album
-        self.title = metadata.title
+        self.album = str(metadata.album)
+        self.title = str(metadata.title)
         self.filePath = filePath
         ext = os.path.splitext(filePath)
         self.lossless = ((ext[1] == ".flac") or (ext[1] == ".wma"))
         self.trackID = utils.genID(metadata)
-        self.trackNumber = int(metadata.track)
+        try:
+            self.trackNumber = int(metadata.track)
+        except (TypeError, ValueError):
+            self.trackNumber = None
 
 
 class Album:
     """ Class representing an album """
 
     def __init__(self, title):
-        self.title = title
+        self.title = str(title)
         self.tracks = []
         self.coverFile = None
 
@@ -61,10 +64,10 @@ class Record:
         if not (os.path.isfile(self.filePath)):
             self.write()
         self.read()
-        self.autosave = False
+        self.killed = False
         self.hasUnsavedChanges = False
         self.autosaveInterval = interval
-        threading.Thread(target=self.__autosave).start()
+        self.autosaveThread = threading.Thread(target=self.__autosave)
 
     def read(self):
         with open(self.filePath) as f:
@@ -98,14 +101,20 @@ class Record:
         return list(self.record.keys())
 
     def __autosave(self):
+        lastTime = time.monotonic()
         while True:
-            if self.autosave and self.hasUnsavedChanges:
+            if self.killed:
+                return
+            currTime = time.monotonic()
+            if self.hasUnsavedChanges and (currTime - lastTime >= self.autosaveInterval):
+                logging.debug("writing changes")
                 self.write()
                 self.hasUnsavedChanges = False
-            time.sleep(self.autosaveInterval)
+                lastTime = currTime
+            time.sleep(0.1)
 
     def startAutosave(self):
-        self.autosave = True
+        self.autosaveThread.start()
 
-    def stopAutosave(self):
-        self.autosave = False
+    def killAutosave(self):
+        self.killed = True

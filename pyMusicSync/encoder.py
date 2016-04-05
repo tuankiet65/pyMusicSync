@@ -1,25 +1,35 @@
 #!/usr/bin/env python3
 
+import shutil
 import subprocess
 import tempfile
-import shutil
+
+from pyMusicSync import utils
 
 
 class EncoderSetting:
+    OPTIONAL_OPTIONS = {
+        "codec": "mp3",
+        "bitrateControl": "vbr",
+        "quality": "0"
+    }
+
     def __init__(self, config):
         codecMap = {
             "mp3": ("libmp3lame", ".mp3"),
-            "opus": ("libopus", ".mkv"),  # Android compability
+            "opus": ("libopus", ".ogg"),
             "ogg": ("libvorbis", ".ogg"),
             "aac": (self.detect_fdkaac(), ".mp4")
         }
-        self.config = config
-        self.encoder, self.ext = codecMap[config.codec]
-        self.bitrateControl = config.bitrateControl
-        self.quality = config.quality
+        for key, default in self.OPTIONAL_OPTIONS.items():
+            self.__setattr__(key, utils.getKey(config, key, default=default))
+        self.encoder, self.ext = codecMap[self.codec]
 
     def toDict(self):
-        return self.config
+        result = {}
+        for key in self.OPTIONAL_OPTIONS.keys():
+            result[key] = getattr(self, key)
+        return result
 
     @staticmethod
     def detect_fdkaac():
@@ -39,7 +49,7 @@ def encode(src, dst, setting):
     tmpFile = tempfile.mkstemp(suffix=setting.ext)[1]
     dst = dst + setting.ext
 
-    param = ["ffmpeg", "-v", "warning", "i", src, "-vn" "-c:a", setting.encoder]
+    param = ["ffmpeg", "-v", "warning", "-i", src, "-vn", "-c:a", setting.encoder]
     if setting.bitrateControl == "vbr":
         param.extend(["-q:a", setting.quality])
     elif setting.bitrateControl == "cbr":
