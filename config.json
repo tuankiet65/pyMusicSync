@@ -9,7 +9,8 @@
     "Unknown Title\u0000",
     "Solutions Advanced Workbook CD",
     "CAE Results",
-    "mp3.zing.vn"
+    "mp3.zing.vn",
+    "FCE Practice Tests"
   ],
   "syncSource": [
     "/media/Entertainment"
@@ -17,9 +18,9 @@
   "syncDestination": "/media/Data1/pyMusicSync/testEnv/dst",
   "dryRun": false,
   "encoderSetting": {
-    "codec": "opus",
-    "bitrateControl": "cbr",
-    "quality": "192k"
+    "codec": "ogg",
+    "bitrateControl": "vbr",
+    "quality": "7"
   },
   "autosaveInterval": 1
 }

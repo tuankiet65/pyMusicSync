@@ -12,3 +12,4 @@ pyMusicEnv/__pycache__/
 
 # Test environment
 testEnv/
+config.json

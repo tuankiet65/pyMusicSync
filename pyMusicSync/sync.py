@@ -73,7 +73,6 @@ class musicSync:
         self.progress.total = trackCount
 
     def __trackHandle(self, track):
-        logging.info("Processing track {} ({:.2f}%)".format(track.title, self.progress.percent))
         if not self.config.dryRun:
             if track.lossless:
                 track.syncedFilePath = encoder.encode(track.filePath, self.__getFilePath(track),
@@ -83,6 +82,7 @@ class musicSync:
                 shutil.copy(track.filePath, track.syncedFilePath)
         self.record.add(track)
         self.progress.increase()
+        logging.info("Processed track {} ({:.2f}%)".format(track.title, self.progress.percent))
 
     @staticmethod
     def __createAlbumDirectory(album):

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import os
 import shutil
 import subprocess
 import tempfile
@@ -46,7 +47,7 @@ class EncoderSetting:
 
 
 def encode(src, dst, setting):
-    tmpFile = tempfile.mkstemp(suffix=setting.ext)[1]
+    tmpFile = tempfile.mkstemp(suffix=setting.ext, prefix="pmsync_")[1]
     dst = dst + setting.ext
 
     param = ["ffmpeg", "-v", "warning", "-i", src, "-vn", "-c:a", setting.encoder]
@@ -55,12 +56,24 @@ def encode(src, dst, setting):
     elif setting.bitrateControl == "cbr":
         param.extend(["-b:a", setting.quality])
     param.extend(["-y", tmpFile])
+    success = False
 
-    subprocess.run(param,
-                   check=True,
-                   stdin=subprocess.DEVNULL,
-                   stdout=subprocess.DEVNULL,
-                   stderr=subprocess.DEVNULL)
+    while not success:
+        try:
+            subprocess.run(param,
+                           check=True,
+                           stdin=subprocess.DEVNULL,
+                           stdout=subprocess.PIPE,
+                           stderr=subprocess.PIPE)
+        except subprocess.CalledProcessError as e:
+            print("=== CalledProcessError ===")
+            print("cmd: {}".format(e.cmd))
+            print("output: {}".format(e.stdout.decode()))
+            print("stderr: {}".format(e.stderr.decode()))
+            print("=== CalledProcessError ===")
+            os.remove(tmpFile)
+        else:
+            shutil.move(tmpFile, dst)
+            success = True
 
-    shutil.move(tmpFile, dst)
     return dst
