@@ -40,7 +40,7 @@ class EncoderSetting:
         if "libfdk_aac" in ffmpegOutput:
             return "libfdk_aac"
         else:
-            print(
+            logging.info(
                 "If your encoding setting is AAC, please consider\n"
                 "compiling FFmpeg with libfdk_aac for better audio quality\n"
                 "compared to FFmpeg's native AAC encoder")
