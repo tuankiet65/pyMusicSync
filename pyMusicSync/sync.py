@@ -22,18 +22,6 @@ class musicSync:
         self.config = config
         self.record.startAutosave()
 
-    def __checkValid(self, metadata):
-        # Length >=15 minutes => Most probably all-in-one file
-        if metadata.duration > 60 * 15:
-            return False
-        # Album name is in blacklist
-        if str(metadata.album) in self.config.blacklistAlbum:
-            return False
-        # Track is already converted
-        if metadata in self.record:
-            return False
-        return True
-
     @staticmethod
     def __detectCoverFile(root):
         possibleNames = ["cover_override.jpg", "cover.png", "cover.jpg", "folder.jpg",
@@ -56,8 +44,9 @@ class musicSync:
                 except LookupError:
                     # File is not a valid audio file, skip
                     continue
+                self.config.modifier.apply(metadata)
                 self.trackIDList.add(utils.genID(metadata))
-                if self.__checkValid(metadata):
+                if self.config.filter.check(metadata) and not (metadata in self.record):
                     albumName = str(metadata.album)
                     if albumName not in self.albums:
                         self.albums[albumName] = objects.Album(albumName)

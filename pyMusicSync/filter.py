@@ -7,37 +7,44 @@ import re
 
 
 class FilterRule:
-    def __init__(self, field, operator, value):
+    def __init__(self, field, operator, value, applyNot=False):
         self.field = field
         self.operator = operator
         if self.operator == "regex":
             self.value = re.compile(value)
         else:
             self.value = value
+        self.applyNot = applyNot
 
-    def execute(self, metadata):
+    def apply(self, metadata):
         if self.operator == "regex":
             if re.search(self.value, metadata[self.field]) is None:
-                return False
+                return False ^ self.applyNot
             else:
-                return True
+                return True ^ self.applyNot
         elif self.operator == "<=":
-            return metadata[self.field] <= self.value
+            return (metadata[self.field] <= self.value) ^ self.applyNot
+        elif self.operator == "==":
+            return (metadata[self.field] == self.value) ^ self.applyNot
         else:
-            raise NotImplementedError
+            raise NotImplementedError("Unimplemented operator: {}".format(self.operator))
 
 
 class Filter:
     rules = []
 
-    def __init__(self):
+    def __init__(self, filterRules=None):
+        if filterRules is None:
+            filterRules = []
+        for rule in filterRules:
+            self.addRule(**rule)
         pass
 
     def addRule(self, field, operator, value):
         self.rules.append(FilterRule(field, operator, value))
 
-    def execute(self, metadata):
+    def check(self, metadata):
         for rule in self.rules:
-            if not rule.execute(metadata):
+            if not rule.apply(metadata):
                 return False
         return True
