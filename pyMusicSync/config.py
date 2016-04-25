@@ -17,7 +17,8 @@ class Config:
         "threadNum": 1,
         "dryRun": False,
         "encoderSetting": {},  # EncoderSetting will handle this instead
-        "autosaveInterval": 5
+        "autosaveInterval": 5,
+        "patch": []
     }
 
     def __init__(self, configFile):

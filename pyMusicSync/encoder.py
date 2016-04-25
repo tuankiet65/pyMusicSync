@@ -4,6 +4,7 @@ import os
 import shutil
 import subprocess
 import tempfile
+import logging
 
 from pyMusicSync import utils
 
@@ -66,11 +67,11 @@ def encode(src, dst, setting):
                            stdout=subprocess.PIPE,
                            stderr=subprocess.PIPE)
         except subprocess.CalledProcessError as e:
-            print("=== CalledProcessError ===")
-            print("cmd: {}".format(e.cmd))
-            print("output: {}".format(e.stdout.decode()))
-            print("stderr: {}".format(e.stderr.decode()))
-            print("=== CalledProcessError ===")
+            logging.debug("=== CalledProcessError ===")
+            logging.debug("cmd: {}".format(e.cmd))
+            logging.debug("output: {}".format(e.stdout.decode()))
+            logging.debug("stderr: {}".format(e.stderr.decode()))
+            logging.debug("=== CalledProcessError ===")
             os.remove(tmpFile)
         else:
             shutil.move(tmpFile, dst)

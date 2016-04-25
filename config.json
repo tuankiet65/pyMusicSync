@@ -22,5 +22,12 @@
     "bitrateControl": "vbr",
     "quality": "7"
   },
-  "autosaveInterval": 1
+  "autosaveInterval": 1,
+  "patch": [
+    {
+      "field": "album",
+      "match": "BAYMETAL",
+      "replaceWith": "Babymetal"
+    }
+  ]
 }
