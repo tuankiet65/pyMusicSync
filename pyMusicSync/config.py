@@ -2,9 +2,7 @@
 
 import json
 
-from pyMusicSync import encoder
-from pyMusicSync import utils
-
+from pyMusicSync import encoder, utils, filter, modifier
 
 class Config:
     configFile = ""
@@ -13,17 +11,20 @@ class Config:
         "syncDestination"
     ]
     OPTIONAL_OPTIONS = {
-        "blacklistAlbum": [],
         "threadNum": 1,
         "dryRun": False,
         "encoderSetting": {},  # EncoderSetting will handle this instead
-        "autosaveInterval": 5
+        "autosaveInterval": 5,
+        "filters": [],
+        "modifiers": [],
     }
 
     def __init__(self, configFile):
         self.configFile = configFile
         self.read()
         self.encoderSetting = encoder.EncoderSetting(self.encoderSetting)
+        self.filter = filter.Filter(self.filters)
+        self.modifier = modifier.Modifier(self.modifiers)
 
     def read(self):
         with open(self.configFile) as f:
