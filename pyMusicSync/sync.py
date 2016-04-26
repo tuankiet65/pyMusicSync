@@ -44,10 +44,10 @@ class musicSync:
                 except LookupError:
                     # File is not a valid audio file, skip
                     continue
-                self.config.modifier.apply(metadata)
+                metadata.album = str(metadata.album)
                 self.trackIDList.add(utils.genID(metadata))
                 if self.config.filter.check(metadata) and not (metadata in self.record):
-                    albumName = str(metadata.album)
+                    albumName = metadata.album
                     if albumName not in self.albums:
                         self.albums[albumName] = objects.Album(albumName)
                     newTrack = objects.Track(metadata, fullPath)
