@@ -1,56 +1,12 @@
 #!/usr/bin/env python3
 
 import json
-import logging
 import os
 import threading
 import time
+import logging
 
 from pyMusicSync import utils
-
-
-class Progress:
-    threadLock = threading.Lock()
-    finished = 0
-    total = 0
-    percent = 0.0
-
-    def __init__(self):
-        pass
-
-    def increase(self):
-        with self.threadLock:
-            self.finished += 1
-            self.percent = (self.finished / self.total) * 100
-
-
-class Track:
-    """ Class representing a track (in an album)
-        All file path are relative to syncDst """
-
-    def __init__(self, metadata, filePath):
-        self.album = str(metadata.album)
-        self.title = str(metadata.title)
-        self.filePath = filePath
-        ext = os.path.splitext(filePath)
-        self.lossless = ((ext[1] == ".flac") or (ext[1] == ".wma"))
-        self.trackID = utils.genID(metadata)
-        try:
-            self.trackNumber = int(metadata.track)
-        except (TypeError, ValueError):
-            self.trackNumber = None
-
-
-class Album:
-    """ Class representing an album """
-
-    def __init__(self, title):
-        self.title = str(title)
-        self.tracks = []
-        self.coverFile = None
-
-    def add(self, track):
-        self.tracks.append(track)
 
 
 class Record:

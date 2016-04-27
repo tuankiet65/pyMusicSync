@@ -1,7 +1,7 @@
 {
   "threadNum": 3,
   "syncSource": [
-    "/media/Data1/pyMusicSync/testEnv/src"
+    "/media/Entertainment/"
   ],
   "syncDestination": "/media/Data1/pyMusicSync/testEnv/dst",
   "dryRun": false,

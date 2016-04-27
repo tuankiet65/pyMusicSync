@@ -25,7 +25,7 @@ class musicSync:
     @staticmethod
     def __detectCoverFile(root):
         possibleNames = ["cover_override.jpg", "cover.png", "cover.jpg", "folder.jpg",
-                         "Cover.jpg", "folder.jpeg", "cover.jpeg"]
+                         "Cover.jpg", "folder.jpeg", "cover.jpeg", "folder.png"]
         for name in possibleNames:
             cover = os.path.join(root, name)
             if os.path.isfile(cover):
@@ -92,7 +92,7 @@ class musicSync:
 
     def prune(self):
         possibleCoverNames = {"cover_override.jpg", "cover.png", "cover.jpg", "folder.jpg",
-                              "Cover.jpg", "folder.jpeg", "cover.jpeg"}
+                              "Cover.jpg", "folder.jpeg", "cover.jpeg", "folder.png"}
         for trackID in self.record.idList():
             if trackID not in self.trackIDList:
                 logging.info("Removing old track {}".format(trackID))
