@@ -26,6 +26,9 @@ def pathSanitize(name):
     # For some reason creating a directory with trailing space on Linux
     # will cause "Invalid argument"
     result = result.strip()
+    # Folder names with trailing spaces like 'e.p.' will become 'e.p'
+    # We'd strip the trailing dot
+    result = result.strip('.')
     return result
 
 
