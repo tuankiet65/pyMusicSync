@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from objects.album import Album
-from objects.track import Track
-from objects.record import Record
-from objects.progress import Progress
+from .album import Album
+from .track import Track
+from .record import Record
+from .progress import Progress

@@ -4,7 +4,6 @@
 # Only supports AND (aka all FilterRule must return True)
 
 import re
-import logging
 
 
 class FilterRule:
@@ -19,17 +18,21 @@ class FilterRule:
 
     def apply(self, metadata):
         fieldValue = getattr(metadata, self.field)
+        result = None
         if self.operator == "regex":
             if re.search(self.value, fieldValue) is None:
-                return False ^ self.applyNot
+                result = False
             else:
-                return True ^ self.applyNot
+                result = True
         elif self.operator == "<=":
-            return (fieldValue <= self.value) ^ self.applyNot
+            result = (fieldValue <= self.value)
         elif self.operator == "==":
-            return (fieldValue == self.value) ^ self.applyNot
+            result = (fieldValue == self.value)
+        elif self.operator == "in":
+            result = (fieldValue in self.value)
         else:
             raise NotImplementedError("Unimplemented operator: {}".format(self.operator))
+        return result ^ self.applyNot
 
 
 class Filter:

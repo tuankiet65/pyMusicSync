@@ -55,8 +55,8 @@ def encode(src, dst, setting):
     if setting.bitrateControl == "vbr":
         param.extend(["-q:a", setting.quality])
     elif setting.bitrateControl == "cbr":
-        param.extend(["-b:a", setting.quality])
-    param.extend(["-y", tmpFile])
+        param.extend(["-b:a", "{}k".format(setting.quality)])
+    param.extend(["-threads", "1", "-y", tmpFile])
     success = False
 
     while not success:
