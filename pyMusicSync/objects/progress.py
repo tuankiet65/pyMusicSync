@@ -16,3 +16,6 @@ class Progress:
         with self.threadLock:
             self.finished += 1
             self.percent = (self.finished / self.total) * 100
+
+    def incTotal(self):
+        self.total += 1

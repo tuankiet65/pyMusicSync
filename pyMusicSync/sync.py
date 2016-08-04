@@ -33,7 +33,6 @@ class musicSync:
         return None
 
     def folderTraversal(self, folderPath):
-        trackCount = 0
         for root, subdir, files in os.walk(folderPath):
             hasMusic = False
             albumName = ""
@@ -53,13 +52,12 @@ class musicSync:
                     newTrack = objects.Track(metadata, fullPath)
                     self.albums[albumName].add(newTrack)
                     hasMusic = True
-                    trackCount += 1
+                    self.progress.incTotal()
             if hasMusic:
                 # Handle cover image
                 self.albums[albumName].coverFile = self.__detectCoverFile(root)
                 logging.info("Album: %s with %d song(s)" %
                              (albumName, len(self.albums[albumName].tracks)))
-        self.progress.total = trackCount
 
     def __trackHandle(self, track):
         if not self.config.dryRun:
