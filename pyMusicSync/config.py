@@ -2,7 +2,7 @@
 
 import json
 
-from pyMusicSync import encoder, utils, filter, modifier
+from pyMusicSync import encoder, utils, filter, modifier, cover_art
 
 class Config:
     configFile = ""
@@ -17,12 +17,14 @@ class Config:
         "autosaveInterval": 5,
         "filters": [],
         "modifiers": [],
+        "upscaleSetting": {} # Handled by UpscaleSetting
     }
 
     def __init__(self, configFile):
         self.configFile = configFile
         self.read()
         self.encoderSetting = encoder.EncoderSetting(self.encoderSetting)
+        self.upscaleSetting = cover_art.UpscaleSetting(self.upscaleSetting)
         self.filter = filter.Filter(self.filters)
         self.modifier = modifier.Modifier(self.modifiers)
 

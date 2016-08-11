@@ -1,17 +1,24 @@
 {
-  "threadNum": 1,
-  "blacklistAlbum": [
-    "Albums that you don't want to sync goes here"
-  ],
-  "syncSource": [
-    "Directories where you'd like to be searched for music"
-  ],
-  "syncDestination": "Sync destination, usually your SD card",
-  "dryRun": false,
-  "encoderSetting": {
-    "codec": "opus",
-    "bitrateControl": "cbr",
-    "quality": "192k"
-  },
-  "autosaveInterval": 5
+    "threadNum": 1,
+    "blacklistAlbum": [
+        "Album names that you don't want to sync goes here"
+    ],
+    "syncSource": [
+        "Directories where you'd like to be searched for music"
+    ],
+    "syncDestination": "Sync destination, usually your SD card",
+    "dryRun": false, // for debug purpose, if this flag is True the program will skip encoding tracks
+    "encoderSetting": {
+        "codec": "opus",
+        "bitrateControl": "cbr",
+        "quality": "192k"
+    },
+    "upscaleSetting": {
+        "enabled": true,
+        "engine": "PIL",
+        "targetWidth": 720,
+        "targetHeight": 1280,
+        "ignoreIfLarger": false
+    },
+    "autosaveInterval": 5
 }

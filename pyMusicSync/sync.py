@@ -7,9 +7,7 @@ import shutil
 
 from tinytag import TinyTag
 
-from pyMusicSync import encoder
-from pyMusicSync import objects
-from pyMusicSync import utils
+from pyMusicSync import encoder, objects, utils, cover_art
 
 
 class musicSync:
@@ -71,13 +69,12 @@ class musicSync:
         self.progress.increase()
         logging.info("Processed track {} ({:.2f}%)".format(track.title, self.progress.percent))
 
-    @staticmethod
-    def __createAlbumDirectory(album):
+    def __createAlbumDirectory(self, album):
         dirName = utils.pathSanitize(album.title)
         if not os.path.isdir(dirName):
             os.mkdir(dirName)
         if album.coverFile is not None:
-            shutil.copy(album.coverFile, dirName)
+            cover_art.copy_cover_art(album.coverFile, dirName, self.config.upscaleSetting)
 
     def startSync(self):
         executor = concurrent.futures.ThreadPoolExecutor(max_workers=self.config.threadNum)
