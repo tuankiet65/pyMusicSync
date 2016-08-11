@@ -20,7 +20,7 @@ class EncoderSetting:
         codecMap = {
             "mp3": ("libmp3lame", ".mp3"),
             "opus": ("libopus", ".ogg"),
-            "ogg": ("libvorbis", ".ogg"),
+            "vorbis": ("libvorbis", ".ogg"),
             "aac": (self.detect_fdkaac(), ".mp4")
         }
         for key, default in self.OPTIONAL_OPTIONS.items():
