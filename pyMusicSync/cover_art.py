@@ -26,10 +26,11 @@ def PILResize(src, width, height, targetWidth, targetHeight):
 
 def Waifu2xResize(src, width, height, targetWidth, targetHeight):
     resize_factor = 2 ** math.ceil(max(math.log2(targetHeight / height), math.log2(targetWidth / targetWidth)))
+    logging.debug("w: {} h: {} tw: {} th: {} rf: {}".format(width, height, targetWidth, targetHeight, resize_factor))
     tmp = tempfile.mkstemp(suffix=".png", prefix="pmsync_cover_")
     try:
         subprocess.run(["waifu2x-converter-cpp",
-                        "--scale_ratio", resize_factor,
+                        "--scale_ratio", str(resize_factor),
                         "-m", "scale",
                         "-i", src,
                         "-o", tmp[1]],
@@ -55,8 +56,6 @@ class UpscaleSetting:
         "targetWidth": 1280,
         "ignoreIfLarger": False
     }
-
-    VALID_ENGINES = ["PIL", "waifu2x"]
 
     def __init__(self, config):
         for key, default in self.OPTIONAL_OPTIONS.items():
@@ -86,13 +85,13 @@ def copy_cover_art(src, dst, setting):
         logging.debug("Error loading cover art {}, ignoring".format(src))
         return
     width, height = img.size
-    if setting.ignoreIfLarger:
-        if (width < setting.targetWidth) or (height < setting.targetHeight):
-            src = setting.upscale(src, width, height, setting.targetWidth, setting.targetHeight)
-            shutil.copy(src, os.path.join(dst, "cover.jpg"))
-        else:
+    if (width >= setting.targetWidth) or (height >= setting.targetHeight):
+        if setting.ignoreIfLarger:
             shutil.copy(src, dst)
+        else:
+            # Just downscale, PIL/Lanczos is enough
+            src = PILResize(src, width, height, setting.targetWidth, setting.targetHeight)
+            shutil.copy(src, os.path.join(dst, "cover.jpg"))
     else:
-        # Just downscaling, PIL and Lanczos is enough
-        src = PILResize(src, width, height, setting.targetWidth, setting.targetHeight)
+        src = setting.upscale(src, width, height, setting.targetWidth, setting.targetHeight)
         shutil.copy(src, os.path.join(dst, "cover.jpg"))
