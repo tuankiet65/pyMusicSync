@@ -85,13 +85,16 @@ def copy_cover_art(src, dst, setting):
         logging.debug("Error loading cover art {}, ignoring".format(src))
         return
     width, height = img.size
-    if (width >= setting.targetWidth) or (height >= setting.targetHeight):
-        if setting.ignoreIfLarger:
-            shutil.copy(src, dst)
+    if setting.enabled:
+        if (width >= setting.targetWidth) or (height >= setting.targetHeight):
+            if setting.ignoreIfLarger:
+                shutil.copy(src, dst)
+            else:
+                # Just downscale, PIL/Lanczos is enough
+                src = PILResize(src, width, height, setting.targetWidth, setting.targetHeight)
+                shutil.copy(src, os.path.join(dst, "cover.jpg"))
         else:
-            # Just downscale, PIL/Lanczos is enough
-            src = PILResize(src, width, height, setting.targetWidth, setting.targetHeight)
+            src = setting.upscale(src, width, height, setting.targetWidth, setting.targetHeight)
             shutil.copy(src, os.path.join(dst, "cover.jpg"))
     else:
-        src = setting.upscale(src, width, height, setting.targetWidth, setting.targetHeight)
-        shutil.copy(src, os.path.join(dst, "cover.jpg"))
+        shutil.copy(src, dst)
