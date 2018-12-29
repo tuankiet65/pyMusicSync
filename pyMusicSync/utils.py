@@ -22,13 +22,15 @@ def pathSanitize(name):
     # Illegal characters
     ILLEGAL_CHAR = '/?<>:*|"\\^)\0\t'
     for ch in ILLEGAL_CHAR:
-        result = result.replace(ch, "")
+        result = result.replace(ch, "_x{:x}_".format(ord(ch)))
     # For some reason creating a directory with trailing space on Linux
     # will cause "Invalid argument"
     result = result.strip()
     # Folder names with trailing spaces like 'e.p.' will become 'e.p'
     # We'd strip the trailing dot
     result = result.strip('.')
+    # Also strip trailing and leading spaces
+    result = result.strip()
     return result
 
 

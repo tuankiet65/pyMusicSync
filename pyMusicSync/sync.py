@@ -71,6 +71,7 @@ class musicSync:
 
     def __createAlbumDirectory(self, album):
         dirName = utils.pathSanitize(album.title)
+        logging.info("Sanitized album folder name: {} => {}".format(album.title, dirName))
         if not os.path.isdir(dirName):
             os.mkdir(dirName)
         if album.coverFile is not None:
