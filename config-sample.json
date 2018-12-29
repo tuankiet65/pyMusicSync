@@ -11,7 +11,7 @@
     "encoderSetting": {
         "codec": "opus",
         "bitrateControl": "cbr",
-        "quality": "192k"
+        "quality": "192"
     },
     "upscaleSetting": {
         "enabled": true,
